@@ -2,15 +2,22 @@ import React, { useState, useRef } from 'react'
 import "../style/home.scss"
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate } from 'react-router'
+import { useAuth } from '../../auth/hooks/useAuth.js'
 
 const Home = () => {
 
+    const { user, handleLogout } = useAuth()
     const { loading, generateReport,reports } = useInterview()
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
     const resumeInputRef = useRef()
 
     const navigate = useNavigate()
+
+    const onLogout = async () => {
+        await handleLogout()
+        navigate("/login")
+    }
 
     const handleGenerateReport = async () => {
         const resumeFile = resumeInputRef.current.files[ 0 ]
@@ -31,6 +38,10 @@ const Home = () => {
 
             {/* Page Header */}
             <header className='page-header'>
+                <h1>Welcome, {user?.username}!</h1>
+                <button className="button primary-button" onClick={onLogout}>
+                Logout
+                </button>
                 <h1>Create Your Custom <span className='highlight'>Interview Plan</span></h1>
                 <p>Let our AI analyze the job requirements and your unique profile to build a winning strategy.</p>
             </header>
