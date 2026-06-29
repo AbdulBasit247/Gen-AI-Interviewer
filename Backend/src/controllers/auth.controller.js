@@ -6,7 +6,11 @@ const tokenBlacklistModel = require("../models/blacklist.model");
 // Cookie options — httpOnly prevents XSS, secure for HTTPS in production
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  maxAge: 24 * 60 * 60 * 1000, // 1 day in ms
+  // maxAge: 24 * 60 * 60 * 1000,  1 day in ms
+  maxAge: 60 * 60 * 1000, // 1 hour in milliseconds
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/"
 };
 
 // Simple email format validator
@@ -72,7 +76,7 @@ async function registerUserController(req, res) {
     const token = jwt.sign(
       { id: user._id, username: user.username },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      { expiresIn: "1h" },
     );
 
     res.cookie("token", token, COOKIE_OPTIONS);
@@ -137,7 +141,7 @@ async function loginUserController(req, res) {
     const token = jwt.sign(
       { id: user._id, username: user.username },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      { expiresIn: "1h" },
     );
 
     res.cookie("token", token, COOKIE_OPTIONS);
@@ -171,7 +175,8 @@ async function logoutUserController(req, res) {
       await tokenBlacklistModel.create({ token });
     }
 
-    res.clearCookie("token", COOKIE_OPTIONS);
+    const { maxAge, ...logoutOptions } = COOKIE_OPTIONS;
+    res.clearCookie("token", logoutOptions);
 
     return res.status(200).json({
       message: "User logged out successfully",

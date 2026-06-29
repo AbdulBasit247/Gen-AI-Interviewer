@@ -30,6 +30,17 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
     gap: 2rem;
 }
 
+.home-page {
+    position: relative; // Yeh zaroori hai taake absolute button iske hisab se align ho
+
+    .logout-btn--top-right {
+        position: absolute;
+        top: 20px;    // Upar se gap (Aap mutabiq set kar sakte hain)
+        right: 20px;   // Right se gap
+        z-index: 10;  // Taake button kisi aur element ke peeche na chupe
+    }
+}
+
 // ── Page Header ──────────────────────────────────────────────────────────────
 .page-header {
     text-align: center;

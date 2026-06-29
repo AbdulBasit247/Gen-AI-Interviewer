@@ -38,9 +38,8 @@ const Home = () => {
 
             {/* Page Header */}
             <header className='page-header'>
-                <h1>Welcome, {user?.username}!</h1>
-                <button className="button primary-button" onClick={onLogout}>
-                Logout
+                <button className="button primary-button logout-btn--top-right" onClick={onLogout}>
+                    Logout
                 </button>
                 <h1>Create Your Custom <span className='highlight'>Interview Plan</span></h1>
                 <p>Let our AI analyze the job requirements and your unique profile to build a winning strategy.</p>
@@ -77,7 +76,7 @@ const Home = () => {
                             <span className='panel__icon'>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                             </span>
-                            <h2>Your Profile</h2>
+                            <h2>Welcome, {user?.username}</h2>
                         </div>
 
                         {/* Upload Resume */}

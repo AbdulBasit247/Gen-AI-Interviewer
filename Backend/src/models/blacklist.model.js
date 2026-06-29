@@ -10,9 +10,9 @@ const blacklistTokenSchema = new mongoose.Schema({
     timestamps: true
 })
 
-// TTL index: MongoDB auto-deletes blacklisted tokens after 1 day (same as JWT expiry)
+// TTL index: MongoDB auto-deletes blacklisted tokens after 6 hours (same as JWT expiry)
 // This prevents the blacklist collection from growing forever
-blacklistTokenSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 })
+blacklistTokenSchema.index({ createdAt: 1 }, { expireAfterSeconds: 21600 })
 
 const tokenBlacklistModel = mongoose.model("blacklistTokens", blacklistTokenSchema)
 
