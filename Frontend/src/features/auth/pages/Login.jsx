@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router'
 import "../auth.form.scss"
 import { useAuth } from '../hooks/useAuth'
+import PasswordInput from '../components/PasswordInput'
 
 const Login = () => {
 
-    const { loading, error, handleLogin } = useAuth()
+    const { loginLoading, error, handleLogin } = useAuth()
     const navigate = useNavigate()
 
     const [email, setEmail] = useState("")
@@ -19,20 +20,11 @@ const Login = () => {
         }
     }
 
-    if (loading) {
-        return (<main><h1>Loading.......</h1></main>)
-    }
-
     return (
         <main>
             <div className="form-container">
                 <h1>Login</h1>
-
-                {/* Show error message if login failed */}
-                {error && (
-                    <p className="error-message">{error}</p>
-                )}
-
+                {error && <p className="error-message">{error}</p>}
                 <form onSubmit={handleSubmit}>
                     <div className="input-group">
                         <label htmlFor="email">Email</label>
@@ -48,17 +40,18 @@ const Login = () => {
                     </div>
                     <div className="input-group">
                         <label htmlFor="password">Password</label>
-                        <input
-                            onChange={(e) => setPassword(e.target.value)}
-                            value={password}
-                            type="password"
+                        <PasswordInput
                             id="password"
-                            name='password'
-                            placeholder='Enter password'
+                            name="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Enter password"
                             required
                         />
                     </div>
-                    <button className='button primary-button'>Login</button>
+                    <button className='button primary-button' disabled={loginLoading}>
+                        {loginLoading ? "Logging in..." : "Login"}
+                    </button>
                 </form>
 
                 <p>Don't have an account? <Link to={"/register"}>Register</Link></p>

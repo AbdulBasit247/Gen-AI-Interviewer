@@ -1,36 +1,87 @@
 import React, { useState, useRef } from 'react'
 import "../style/home.scss"
+import { toast } from 'sonner'
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate } from 'react-router'
 import { useAuth } from '../../auth/hooks/useAuth.js'
 
+const MAX_RESUME_SIZE_BYTES = 3 * 1024 * 1024 // 3MB — must match Backend/src/middlewares/file.middleware.js
+const ALLOWED_RESUME_EXTENSIONS = ['.pdf', '.docx']
+
 const Home = () => {
 
-    const { user, handleLogout } = useAuth()
-    const { loading, generateReport,reports } = useInterview()
-    const [ jobDescription, setJobDescription ] = useState("")
-    const [ selfDescription, setSelfDescription ] = useState("")
-    const resumeInputRef = useRef()
+    const { user, logoutLoading, handleLogout } = useAuth()
+    const { generating, reportsLoading, generateReport, reports, deleteReport } = useInterview()
+    const [jobDescription, setJobDescription] = useState("")
+    const [selfDescription, setSelfDescription] = useState("")
 
+    // File ka name store karne ke liye state
+    const [fileName, setFileName] = useState("")
+
+    const resumeInputRef = useRef()
     const navigate = useNavigate()
 
     const onLogout = async () => {
+        const confirmed = window.confirm("Are you sure you want to logout?")
+        if (!confirmed) return
         await handleLogout()
         navigate("/login")
     }
 
-    const handleGenerateReport = async () => {
-        const resumeFile = resumeInputRef.current.files[ 0 ]
-        const data = await generateReport({ jobDescription, selfDescription, resumeFile })
-        navigate(`/interview/${data._id}`)
+    // File handle karne ka function, with client-side validation
+    const handleFileChange = (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+
+        const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase()
+        if (!ALLOWED_RESUME_EXTENSIONS.includes(extension)) {
+            toast.error("Only PDF or DOCX files are allowed.")
+            e.target.value = ""
+            return
+        }
+
+        if (file.size > MAX_RESUME_SIZE_BYTES) {
+            toast.error("Resume file must be 3MB or smaller.")
+            e.target.value = ""
+            return
+        }
+
+        setFileName(file.name)
     }
 
-    if (loading) {
-        return (
-            <main className='loading-screen'>
-                <h1>Loading your interview plan...</h1>
-            </main>
-        )
+    // Clears the selected resume so the user can pick a different one
+    // or drop back to the self-description path.
+    const handleRemoveFile = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setFileName("")
+        if (resumeInputRef.current) {
+            resumeInputRef.current.value = ""
+        }
+    }
+
+    const handleGenerateReport = async () => {
+        const resumeFile = resumeInputRef.current.files[0]
+        if (!jobDescription.trim()) {
+            toast.error("Please paste the job description first.")
+            return
+        }
+        if (!resumeFile && !selfDescription.trim()) {
+            toast.error("Please upload a resume or add a self-description.")
+            return
+        }
+        const data = await generateReport({ jobDescription, selfDescription, resumeFile })
+        if (data) {
+            navigate(`/interview/${data._id}`)
+        }
+    }
+
+    const handleDeleteReport = async (e, reportId) => {
+        e.preventDefault()
+        e.stopPropagation() // don't trigger navigation into the report
+        const confirmed = window.confirm("Delete this interview plan? This can't be undone.")
+        if (!confirmed) return
+        await deleteReport(reportId)
     }
 
     return (
@@ -38,8 +89,13 @@ const Home = () => {
 
             {/* Page Header */}
             <header className='page-header'>
-                <button className="button primary-button logout-btn--top-right" onClick={onLogout}>
-                    Logout
+                <button
+                    className="button primary-button logout-btn--top-right"
+                    onClick={onLogout}
+                    disabled={logoutLoading}
+                    aria-label="Logout"
+                >
+                    {logoutLoading ? "Logging out..." : "Logout"}
                 </button>
                 <h1>Create Your Custom <span className='highlight'>Interview Plan</span></h1>
                 <p>Let our AI analyze the job requirements and your unique profile to build a winning strategy.</p>
@@ -58,13 +114,17 @@ const Home = () => {
                             <h2>Target Job Description</h2>
                             <span className='badge badge--required'>Required</span>
                         </div>
-                        <textarea
-                            onChange={(e) => { setJobDescription(e.target.value) }}
-                            className='panel__textarea'
-                            placeholder={`Paste the full job description here...\ne.g. 'Senior Frontend Engineer at Google requires proficiency in React, TypeScript, and large-scale system design...'`}
-                            maxLength={5000}
-                        />
-                        <div className='char-counter'>0 / 5000 chars</div>
+
+                        <div className='textarea-wrapper'>
+                            <textarea
+                                value={jobDescription}
+                                onChange={(e) => { setJobDescription(e.target.value) }}
+                                className='panel__textarea'
+                                placeholder={`Paste the full job description here...\ne.g. 'Senior Frontend Engineer at Google requires proficiency in React, TypeScript, and large-scale system design...'`}
+                                maxLength={5000}
+                            />
+                            <div className='char-counter'>{jobDescription.length} / 5000 chars</div>
+                        </div>
                     </div>
 
                     {/* Vertical Divider */}
@@ -85,13 +145,50 @@ const Home = () => {
                                 Upload Resume
                                 <span className='badge badge--best'>Best Results</span>
                             </label>
-                            <label className='dropzone' htmlFor='resume'>
+
+                            <label className={`dropzone ${fileName ? 'dropzone--uploaded' : ''}`} htmlFor='resume'>
                                 <span className='dropzone__icon'>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
+                                    {fileName ? (
+                                        /* Success/Document Icon */
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="9 15 11 17 15 13"></polyline></svg>
+                                    ) : (
+                                        /* Upload Icon */
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
+                                    )}
                                 </span>
-                                <p className='dropzone__title'>Click to upload or drag &amp; drop</p>
-                                <p className='dropzone__subtitle'>PDF or DOCX (Max 5MB)</p>
-                                <input ref={resumeInputRef} hidden type='file' id='resume' name='resume' accept='.pdf,.docx' />
+
+                                {fileName ? (
+                                    <>
+                                        <p className='dropzone__title dropzone__title--success'>
+                                            Selected: {fileName}
+                                            <button
+                                                type="button"
+                                                className="dropzone__remove"
+                                                onClick={handleRemoveFile}
+                                                aria-label="Remove selected resume"
+                                                title="Remove selected resume"
+                                            >
+                                                ×
+                                            </button>
+                                        </p>
+                                        <p className='dropzone__subtitle'>Click again to change file</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className='dropzone__title'>Click to upload or drag &amp; drop</p>
+                                        <p className='dropzone__subtitle'>PDF or DOCX (Max 3MB)</p>
+                                    </>
+                                )}
+
+                                <input
+                                    ref={resumeInputRef}
+                                    onChange={handleFileChange}
+                                    hidden
+                                    type='file'
+                                    id='resume'
+                                    name='resume'
+                                    accept='.pdf,.docx'
+                                />
                             </label>
                         </div>
 
@@ -125,28 +222,43 @@ const Home = () => {
                     <span className='footer-info'>AI-Powered Strategy Generation &bull; Approx 30s</span>
                     <button
                         onClick={handleGenerateReport}
-                        className='generate-btn'>
+                        className='generate-btn'
+                        disabled={generating}
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" /></svg>
-                        Generate My Interview Strategy
+                        {generating ? "Generating your strategy..." : "Generate My Interview Strategy"}
                     </button>
                 </div>
             </div>
 
             {/* Recent Reports List */}
-            {reports.length > 0 && (
-                <section className='recent-reports'>
-                    <h2>My Recent Interview Plans</h2>
+            <section className='recent-reports'>
+                <h2>My Recent Interview Plans</h2>
+
+                {reportsLoading ? (
+                    <p className='reports-status'>Loading your interview plans...</p>
+                ) : reports.length > 0 ? (
                     <ul className='reports-list'>
                         {reports.map(report => (
                             <li key={report._id} className='report-item' onClick={() => navigate(`/interview/${report._id}`)}>
+                                <button
+                                    className='report-item__delete'
+                                    onClick={(e) => handleDeleteReport(e, report._id)}
+                                    aria-label={`Delete interview plan for ${report.title || 'Untitled Position'}`}
+                                    title="Delete this plan"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                                </button>
                                 <h3>{report.title || 'Untitled Position'}</h3>
                                 <p className='report-meta'>Generated on {new Date(report.createdAt).toLocaleDateString()}</p>
                                 <p className={`match-score ${report.matchScore >= 80 ? 'score--high' : report.matchScore >= 60 ? 'score--mid' : 'score--low'}`}>Match Score: {report.matchScore}%</p>
                             </li>
                         ))}
                     </ul>
-                </section>
-            )}
+                ) : (
+                    <p className='reports-empty'>You haven't created any interview plans yet — generate your first one above!</p>
+                )}
+            </section>
 
             {/* Page Footer */}
             <footer className='page-footer'>

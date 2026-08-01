@@ -1,74 +1,77 @@
 import { useContext, useEffect } from "react";
+import { toast } from "sonner";
 import { AuthContext } from "../auth.context";
 import { login, register, logout, getMe } from "../services/auth.api";
-
 
 export const useAuth = () => {
 
     const context = useContext(AuthContext)
-    const { user, setUser, loading, setLoading, error, setError } = context
-
+    const { user, setUser, authLoading, setAuthLoading, loginLoading, setLoginLoading, registerLoading, setRegisterLoading, logoutLoading, setLogoutLoading, error, setError } = context
 
     const handleLogin = async ({ email, password }) => {
-        setLoading(true)
+        setLoginLoading(true)
         setError(null)
         try {
             const data = await login({ email, password })
             setUser(data.user)
+            toast.success(data.message || "Logged in successfully!")
             return true
         } catch (err) {
-            console.log(err)
             const message = err.response?.data?.message || "Login failed. Please try again."
             setError(message)
+            toast.error(message)
             return false
         } finally {
-            setLoading(false)
+            setLoginLoading(false)
         }
     }
 
     const handleRegister = async ({ username, email, password }) => {
-        setLoading(true)
+        setRegisterLoading(true)
         setError(null)
         try {
             const data = await register({ username, email, password })
             setUser(data.user)
+            toast.success(data.message || "Account created successfully!")
             return true
         } catch (err) {
-            console.log(err)
             const message = err.response?.data?.message || "Registration failed. Please try again."
             setError(message)
+            toast.error(message)
             return false
         } finally {
-            setLoading(false)
+            setRegisterLoading(false)
         }
     }
 
     const handleLogout = async () => {
-        setLoading(true)
+        setLogoutLoading(true)
         setError(null)
         try {
-            await logout()
+            const data = await logout()
             setUser(null)
+            toast.success(data?.message || "Logged out successfully!")
         } catch (err) {
-            console.log(err)
+            const message = err.response?.data?.message || "Logout failed. Please try again."
+            toast.error(message)
         } finally {
-            setLoading(false)
+            setLogoutLoading(false)
         }
     }
 
-    // On app load, try to restore the logged-in user from cookie
+    // On app load, try to restore the logged-in user from cookie.
+    // Intentionally silent on failure — "not logged in yet" is a normal
+    // state on first visit, not an error worth toasting.
     useEffect(() => {
 
         const getAndSetUser = async () => {
             try {
-
                 const data = await getMe()
                 setUser(data.user)
             } catch (err) {
-                console.log(err)
                 setUser(null)
             } finally {
-                setLoading(false)
+                setAuthLoading(false)
             }
         }
 
@@ -76,5 +79,5 @@ export const useAuth = () => {
 
     }, [])
 
-    return { user, loading, error, handleRegister, handleLogin, handleLogout }
+    return { user, authLoading, loginLoading, registerLoading, logoutLoading, error, handleRegister, handleLogin, handleLogout }
 }

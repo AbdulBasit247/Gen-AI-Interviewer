@@ -44,6 +44,35 @@ main {
         font-size: 0.9rem;
     }
 
+    // Shared password field with show/hide toggle
+    .password-input {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+
+        &__field {
+            width: 100%;
+            padding-right: 60px;
+        }
+
+        &__toggle {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            padding: 0;
+
+            &:hover {
+                color: whitesmoke;
+            }
+        }
+    }
+
     a {
         color: #e1034d;
         text-decoration: none;

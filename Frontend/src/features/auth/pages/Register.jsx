@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { useAuth } from "../hooks/useAuth";
+import PasswordInput from "../components/PasswordInput";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -8,7 +9,7 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const { loading, error, handleRegister } = useAuth();
+  const { registerLoading, error, handleRegister } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,20 +19,10 @@ const Register = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <main>
-        <h1>Loading.......</h1>
-      </main>
-    );
-  }
-
   return (
     <main>
       <div className="form-container">
         <h1>Register</h1>
-
-        {/* Show error message if register failed */}
         {error && <p className="error-message">{error}</p>}
 
         <form onSubmit={handleSubmit}>
@@ -47,6 +38,7 @@ const Register = () => {
               required
             />
           </div>
+
           <div className="input-group">
             <label htmlFor="email">Email</label>
             <input
@@ -59,20 +51,22 @@ const Register = () => {
               required
             />
           </div>
+
           <div className="input-group">
             <label htmlFor="password">Password</label>
-            <input
-              onChange={(e) => setPassword(e.target.value)}
-              value={password}
-              type="password"
+            <PasswordInput
               id="password"
               name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
               required
             />
           </div>
 
-          <button className="button primary-button">Register</button>
+          <button className="button primary-button" disabled={registerLoading}>
+            {registerLoading ? "Creating account..." : "Register"}
+          </button>
         </form>
 
         <p>
